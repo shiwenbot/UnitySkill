@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
-using System.Reflection;
 using System.Threading;
 using UnityEngine;
 
@@ -207,17 +206,16 @@ namespace AgentSkill
                 else
                 {
                     var route = path.TrimStart('/');
-                    MethodInfo skillMethod = AgentSkillRegistry.Find(route, request.HttpMethod);
+                    Func<string, string> skillDelegate = AgentSkillRegistry.Find(route, request.HttpMethod);
 
-                    if (skillMethod != null)
+                    if (skillDelegate != null)
                     {
                         string body;
                         using (var reader = new StreamReader(request.InputStream, System.Text.Encoding.UTF8))
                             body = reader.ReadToEnd();
 
                         var capturedBody = body;
-                        responseString = ExecuteOnMainThread(() =>
-                            (string)skillMethod.Invoke(null, new object[] { capturedBody }));
+                        responseString = ExecuteOnMainThread(() => skillDelegate(capturedBody));
                     }
                     else
                     {
