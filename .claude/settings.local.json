@@ -10,7 +10,9 @@
       "mcp__plugin_serena_serena__get_current_config",
       "Bash(echo:*)",
       "Bash(winget install:*)",
-      "Bash(echo pwsh not found yet:*)"
+      "Bash(echo pwsh not found yet:*)",
+      "Bash(git:*)",
+      "Bash(python:*)"
     ]
   }
 }

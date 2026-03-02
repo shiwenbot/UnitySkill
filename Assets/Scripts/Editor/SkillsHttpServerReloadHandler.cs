@@ -25,6 +25,9 @@ namespace AgentSkill
                 SkillsHttpServer.Start(savedPort);
             }
 
+            // 注册主线程操作队列处理（HTTP 后台线程创建 GameObject 需要主线程执行）
+            EditorApplication.update += SkillsHttpServer.ProcessMainThreadQueue;
+
             // 订阅下一次 Reload 前的回调
             AssemblyReloadEvents.beforeAssemblyReload += OnBeforeAssemblyReload;
         }
@@ -34,6 +37,8 @@ namespace AgentSkill
         /// </summary>
         private static void OnBeforeAssemblyReload()
         {
+            EditorApplication.update -= SkillsHttpServer.ProcessMainThreadQueue;
+
             SessionState.SetBool(KeyShouldRun, SkillsHttpServer.IsRunning);
             SessionState.SetInt(KeyPort,       SkillsHttpServer.CurrentPort);
 
