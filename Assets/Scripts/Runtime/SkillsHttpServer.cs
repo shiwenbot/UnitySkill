@@ -2,13 +2,15 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
+using System.Reflection;
 using System.Threading;
 using UnityEngine;
 
 namespace AgentSkill
 {
     /// <summary>
-    /// HTTP 服务器，用于接收 Agent Skills 相关请求（编辑器模式）
+    /// HTTP 服务器，用于接收 Agent Skills 相关请求（编辑器模式）。
+    /// 路由调度通过 AgentSkillRegistry 查表完成，具体 Skill 实现在独立文件中。
     /// </summary>
     public static class SkillsHttpServer
     {
@@ -42,25 +44,6 @@ namespace AgentSkill
             public Func<string> Execute;
             public ManualResetEventSlim Done = new ManualResetEventSlim(false);
             public string Result;
-        }
-
-        // 用于从请求体中解析创建物体的参数
-        [Serializable]
-        private class CreateObjectParams
-        {
-            public string name = "NewObject";
-            public string primitiveType = "Cube";
-            public float x;
-            public float y;
-            public float z;
-            // 缩放，默认 1
-            public float scaleX = 1f;
-            public float scaleY = 1f;
-            public float scaleZ = 1f;
-            // 颜色（0~1 范围），负值表示不设置颜色
-            public float colorR = -1f;
-            public float colorG = -1f;
-            public float colorB = -1f;
         }
 
         /// <summary>
@@ -203,7 +186,7 @@ namespace AgentSkill
         }
 
         /// <summary>
-        /// 处理 HTTP 请求，根据路径分发到对应处理函数
+        /// 处理 HTTP 请求：/ping 直接响应，其余路由通过 AgentSkillRegistry 查表分发
         /// </summary>
         private static void HandleRequest(HttpListenerContext context)
         {
@@ -221,14 +204,26 @@ namespace AgentSkill
                 {
                     responseString = $"{{\"status\":\"ok\",\"port\":{currentPort}}}";
                 }
-                else if (path == "/create_object" && request.HttpMethod == "POST")
-                {
-                    responseString = HandleCreateObject(request);
-                }
                 else
                 {
-                    response.StatusCode = 404;
-                    responseString = $"{{\"success\":false,\"error\":\"未知端点: {EscapeJson(path)}\"}}";
+                    var route = path.TrimStart('/');
+                    MethodInfo skillMethod = AgentSkillRegistry.Find(route, request.HttpMethod);
+
+                    if (skillMethod != null)
+                    {
+                        string body;
+                        using (var reader = new StreamReader(request.InputStream, System.Text.Encoding.UTF8))
+                            body = reader.ReadToEnd();
+
+                        var capturedBody = body;
+                        responseString = ExecuteOnMainThread(() =>
+                            (string)skillMethod.Invoke(null, new object[] { capturedBody }));
+                    }
+                    else
+                    {
+                        response.StatusCode = 404;
+                        responseString = $"{{\"success\":false,\"error\":\"未知端点: {EscapeJson(path)}\"}}";
+                    }
                 }
 
                 var buffer = System.Text.Encoding.UTF8.GetBytes(responseString);
@@ -240,73 +235,6 @@ namespace AgentSkill
             {
                 Debug.LogError($"[SkillsHttpServer] 处理请求错误: {e.Message}");
             }
-        }
-
-        /// <summary>
-        /// 处理 /create_object 请求，解析参数后在主线程中创建 GameObject
-        /// </summary>
-        private static string HandleCreateObject(HttpListenerRequest request)
-        {
-            string body;
-            using (var reader = new StreamReader(request.InputStream, System.Text.Encoding.UTF8))
-                body = reader.ReadToEnd();
-
-            CreateObjectParams p;
-            try
-            {
-                p = string.IsNullOrEmpty(body)
-                    ? new CreateObjectParams()
-                    : JsonUtility.FromJson<CreateObjectParams>(body);
-            }
-            catch
-            {
-                p = new CreateObjectParams();
-            }
-
-            var name = p.name;
-            var primitiveType = p.primitiveType;
-            var x = p.x;
-            var y = p.y;
-            var z = p.z;
-            var scaleX = p.scaleX;
-            var scaleY = p.scaleY;
-            var scaleZ = p.scaleZ;
-            var colorR = p.colorR;
-            var colorG = p.colorG;
-            var colorB = p.colorB;
-
-            return ExecuteOnMainThread(() =>
-            {
-                PrimitiveType type;
-                switch (primitiveType.ToLower())
-                {
-                    case "sphere":   type = PrimitiveType.Sphere;   break;
-                    case "capsule":  type = PrimitiveType.Capsule;  break;
-                    case "cylinder": type = PrimitiveType.Cylinder; break;
-                    case "plane":    type = PrimitiveType.Plane;    break;
-                    default:         type = PrimitiveType.Cube;     break;
-                }
-
-                var go = GameObject.CreatePrimitive(type);
-                go.name = name;
-                go.transform.position = new Vector3(x, y, z);
-                go.transform.localScale = new Vector3(scaleX, scaleY, scaleZ);
-
-                // 设置颜色（colorR >= 0 时生效）
-                if (colorR >= 0f)
-                {
-                    var renderer = go.GetComponent<Renderer>();
-                    if (renderer != null)
-                    {
-                        // 创建独立材质实例，避免共享材质互相影响
-                        var mat = new Material(renderer.sharedMaterial);
-                        mat.color = new Color(colorR, colorG, colorB);
-                        renderer.material = mat;
-                    }
-                }
-
-                return $"{{\"success\":true,\"name\":\"{EscapeJson(go.name)}\"}}";
-            });
         }
 
         /// <summary>

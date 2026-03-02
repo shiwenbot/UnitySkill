@@ -20,6 +20,9 @@ namespace AgentSkill
             bool wasRunning = SessionState.GetBool(KeyShouldRun, false);
             int  savedPort  = SessionState.GetInt(KeyPort, 8090);
 
+            // 扫描并注册所有带 AgentSkillAttribute 的 Skill
+            AgentSkillRegistry.Scan();
+
             if (wasRunning)
             {
                 SkillsHttpServer.Start(savedPort);
