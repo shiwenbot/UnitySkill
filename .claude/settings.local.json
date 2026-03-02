@@ -12,7 +12,8 @@
       "Bash(winget install:*)",
       "Bash(echo pwsh not found yet:*)",
       "Bash(git:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(npx tsx:*)"
     ]
   }
 }
