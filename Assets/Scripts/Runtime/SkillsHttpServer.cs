@@ -206,7 +206,7 @@ namespace AgentSkill
                 else
                 {
                     var route = path.TrimStart('/');
-                    Func<string, string> skillDelegate = AgentSkillRegistry.Find(route, request.HttpMethod);
+                    Func<SkillRequest, string> skillDelegate = AgentSkillRegistry.Find(route, request.HttpMethod);
 
                     if (skillDelegate != null)
                     {
@@ -214,8 +214,16 @@ namespace AgentSkill
                         using (var reader = new StreamReader(request.InputStream, System.Text.Encoding.UTF8))
                             body = reader.ReadToEnd();
 
-                        var capturedBody = body;
-                        responseString = ExecuteOnMainThread(() => skillDelegate(capturedBody));
+                        var skillRequest = new SkillRequest
+                        {
+                            Context = context,
+                            HttpMethod = request.HttpMethod,
+                            Path = path,
+                            Body = body,
+                            EnqueueTimeTicks = DateTime.UtcNow.Ticks,
+                            RequestId = Guid.NewGuid().ToString("N")
+                        };
+                        responseString = ExecuteOnMainThread(() => skillDelegate(skillRequest));
                     }
                     else
                     {

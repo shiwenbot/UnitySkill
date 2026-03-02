@@ -4,7 +4,7 @@ namespace AgentSkill
 {
     /// <summary>
     /// 标记静态方法为 Agent Skill，由 AgentSkillRegistry 自动发现并注册。
-    /// 方法签名约定：static string MethodName(string body)
+    /// 方法签名约定：static string MethodName(SkillRequest request)
     /// </summary>
     [AttributeUsage(AttributeTargets.Method)]
     public class AgentSkillAttribute : Attribute

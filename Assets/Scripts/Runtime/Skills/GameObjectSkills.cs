@@ -31,8 +31,9 @@ namespace AgentSkill
         /// 在场景中创建一个基础几何体 GameObject
         /// </summary>
         [AgentSkill("create_object")]
-        public static string CreateObject(string body)
+        public static string CreateObject(SkillRequest request)
         {
+            var body = request.Body;
             CreateObjectParams p;
             try
             {
