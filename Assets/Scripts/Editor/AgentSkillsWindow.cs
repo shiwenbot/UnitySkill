@@ -59,13 +59,14 @@ namespace AgentSkill
 
         private void DrawServerTab()
         {
+            // 获取服务器状态
+            var isServerRunning = SkillsHttpServer.IsRunning;
+
             SirenixEditorGUI.BeginBox();
             {
                 GUILayout.Label("服务器连接", EditorStyles.boldLabel);
                 EditorGUILayout.Space();
 
-                // 获取服务器状态
-                var isServerRunning = SkillsHttpServer.IsRunning;
                 var statusColor = isServerRunning ? new Color(0.3f, 0.8f, 0.3f) : new Color(1f, 0.3f, 0.3f);
                 var statusText = isServerRunning ? "服务器运行中" : "服务器已停止";
 
@@ -86,7 +87,7 @@ namespace AgentSkill
                         GUI.backgroundColor = new Color(0.3f, 0.8f, 0.3f);
                         if (GUILayout.Button("启动服务器", GUILayout.Width(120), GUILayout.Height(30)))
                         {
-                            SkillsHttpServer.Start(8080);
+                            SkillsHttpServer.Start();
                         }
                     }
                     else
@@ -102,6 +103,29 @@ namespace AgentSkill
                 EditorGUILayout.EndHorizontal();
             }
             SirenixEditorGUI.EndBox();
+
+            // 服务器 URL 显示
+            if (isServerRunning)
+            {
+                EditorGUILayout.Space(5);
+                SirenixEditorGUI.BeginBox();
+                {
+                    GUILayout.Label("连接信息", EditorStyles.boldLabel);
+                    EditorGUILayout.Space();
+
+                    var serverUrl = SkillsHttpServer.ServerUrl;
+                    EditorGUILayout.BeginHorizontal();
+                    {
+                        EditorGUILayout.SelectableLabel(serverUrl, EditorStyles.textField, GUILayout.Height(25));
+                        if (GUILayout.Button("复制", GUILayout.Width(60), GUILayout.Height(25)))
+                        {
+                            GUIUtility.systemCopyBuffer = serverUrl;
+                        }
+                    }
+                    EditorGUILayout.EndHorizontal();
+                }
+                SirenixEditorGUI.EndBox();
+            }
         }
 
         private void DrawSkillsTab()

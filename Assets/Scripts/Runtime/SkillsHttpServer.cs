@@ -13,11 +13,22 @@ namespace AgentSkill
         private static HttpListener listener;
         private static Thread listenerThread;
         private static bool isRunning;
+        private static int currentPort;
 
         /// <summary>
         /// 服务器是否正在运行
         /// </summary>
         public static bool IsRunning => isRunning;
+
+        /// <summary>
+        /// 当前服务器端口号
+        /// </summary>
+        public static int CurrentPort => currentPort;
+
+        /// <summary>
+        /// 服务器完整 URL
+        /// </summary>
+        public static string ServerUrl => isRunning ? $"http://localhost:{currentPort}/" : null;
 
         /// <summary>
         /// 启动 HTTP 服务器
@@ -37,6 +48,7 @@ namespace AgentSkill
                 listener.Prefixes.Add($"http://localhost:{portNumber}/");
                 listener.Start();
                 isRunning = true;
+                currentPort = portNumber;
 
                 listenerThread = new Thread(Listen);
                 listenerThread.IsBackground = true;
@@ -60,6 +72,7 @@ namespace AgentSkill
             }
 
             isRunning = false;
+            currentPort = 0;
 
             try
             {
