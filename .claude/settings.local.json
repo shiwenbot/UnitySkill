@@ -13,7 +13,8 @@
       "Bash(echo pwsh not found yet:*)",
       "Bash(git:*)",
       "Bash(python:*)",
-      "Bash(npx tsx:*)"
+      "Bash(npx tsx:*)",
+      "Bash(python3:*)"
     ]
   }
 }
