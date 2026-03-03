@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
+using Newtonsoft.Json;
 using UnityEngine;
 
 namespace AgentSkill
@@ -11,7 +11,6 @@ namespace AgentSkill
     /// </summary>
     public static class QueryObjectSkills
     {
-        [Serializable]
         private class FindObjectsParams
         {
             public string name = "";
@@ -19,6 +18,30 @@ namespace AgentSkill
             public string componentType = "";
             public bool includeInactive = false;
             public int limit = 100;
+        }
+
+        private class PositionInfo
+        {
+            public float x;
+            public float y;
+            public float z;
+        }
+
+        private class ObjectInfo
+        {
+            public string name;
+            public string tag;
+            public bool active;
+            public int instanceId;
+            public PositionInfo position;
+            public List<string> components;
+        }
+
+        private class FindObjectsResult
+        {
+            public bool success;
+            public int count;
+            public List<ObjectInfo> objects;
         }
 
         /// <summary>
@@ -33,7 +56,7 @@ namespace AgentSkill
             {
                 p = string.IsNullOrEmpty(body)
                     ? new FindObjectsParams()
-                    : JsonUtility.FromJson<FindObjectsParams>(body);
+                    : JsonConvert.DeserializeObject<FindObjectsParams>(body);
             }
             catch
             {
@@ -57,7 +80,7 @@ namespace AgentSkill
                 }
                 catch (UnityException)
                 {
-                    return SkillResponse.Fail($"Tag \"{SkillResponse.EscapeJson(p.tag)}\" 不存在，请检查 Tag 名称是否已在 Project Settings 中注册");
+                    return SkillResponse.Fail($"Tag \"{p.tag}\" 不存在，请检查 Tag 名称是否已在 Project Settings 中注册");
                 }
             }
             else
@@ -66,7 +89,7 @@ namespace AgentSkill
             }
 
             // 依次过滤 name 和 componentType，取前 limit 条
-            var results = new List<GameObject>();
+            var objectInfos = new List<ObjectInfo>();
             foreach (var go in candidates)
             {
                 if (hasName && go.name.IndexOf(p.name, StringComparison.OrdinalIgnoreCase) < 0)
@@ -86,51 +109,36 @@ namespace AgentSkill
                     if (!matched) continue;
                 }
 
-                results.Add(go);
-                if (results.Count >= p.limit)
+                var pos = go.transform.position;
+                var compNames = new List<string>();
+                foreach (var comp in go.GetComponents<Component>())
+                {
+                    if (comp != null)
+                        compNames.Add(comp.GetType().Name);
+                }
+
+                objectInfos.Add(new ObjectInfo
+                {
+                    name       = go.name,
+                    tag        = go.tag,
+                    active     = go.activeInHierarchy,
+                    instanceId = go.GetInstanceID(),
+                    position   = new PositionInfo { x = pos.x, y = pos.y, z = pos.z },
+                    components = compNames
+                });
+
+                if (objectInfos.Count >= p.limit)
                     break;
             }
 
-            // 手动拼接 JSON 响应
-            var sb = new StringBuilder();
-            sb.Append("{\"success\":true,\"count\":");
-            sb.Append(results.Count);
-            sb.Append(",\"objects\":[");
-
-            for (int i = 0; i < results.Count; i++)
+            var result = new FindObjectsResult
             {
-                if (i > 0) sb.Append(",");
+                success = true,
+                count   = objectInfos.Count,
+                objects = objectInfos
+            };
 
-                var go  = results[i];
-                var pos = go.transform.position;
-
-                // 拼接组件名称数组
-                var compSb    = new StringBuilder();
-                bool firstComp = true;
-                foreach (var comp in go.GetComponents<Component>())
-                {
-                    if (comp == null) continue;
-                    if (!firstComp) compSb.Append(",");
-                    compSb.Append("\"");
-                    compSb.Append(SkillResponse.EscapeJson(comp.GetType().Name));
-                    compSb.Append("\"");
-                    firstComp = false;
-                }
-
-                sb.Append("{");
-                sb.Append("\"name\":\"");    sb.Append(SkillResponse.EscapeJson(go.name));    sb.Append("\",");
-                sb.Append("\"tag\":\"");     sb.Append(SkillResponse.EscapeJson(go.tag));     sb.Append("\",");
-                sb.Append("\"active\":");    sb.Append(go.activeInHierarchy ? "true" : "false");            sb.Append(",");
-                sb.Append("\"instanceId\":"); sb.Append(go.GetInstanceID());                               sb.Append(",");
-                sb.Append("\"position\":{\"x\":");
-                sb.Append(pos.x); sb.Append(",\"y\":"); sb.Append(pos.y); sb.Append(",\"z\":"); sb.Append(pos.z);
-                sb.Append("},");
-                sb.Append("\"components\":["); sb.Append(compSb); sb.Append("]");
-                sb.Append("}");
-            }
-
-            sb.Append("]}");
-            return SkillResponse.Ok(sb.ToString());
+            return SkillResponse.Ok(JsonConvert.SerializeObject(result));
         }
     }
 }

@@ -1,3 +1,5 @@
+using Newtonsoft.Json;
+
 namespace AgentSkill
 {
     /// <summary>
@@ -33,17 +35,8 @@ namespace AgentSkill
         /// <param name="statusCode">HTTP 状态码</param>
         public static SkillResponse Fail(string error, int statusCode = 400)
         {
-            var json = $"{{\"success\":false,\"error\":\"{EscapeJson(error)}\"}}";
+            var json = JsonConvert.SerializeObject(new { success = false, error });
             return new SkillResponse(json, statusCode);
-        }
-
-        /// <summary>
-        /// 对 JSON 字符串值中的特殊字符进行转义
-        /// </summary>
-        internal static string EscapeJson(string s)
-        {
-            return s?.Replace("\\", "\\\\").Replace("\"", "\\\"")
-                     .Replace("\n", "\\n").Replace("\r", "\\r") ?? "";
         }
     }
 }

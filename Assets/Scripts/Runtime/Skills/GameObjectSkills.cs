@@ -1,4 +1,4 @@
-using System;
+using Newtonsoft.Json;
 using UnityEngine;
 
 namespace AgentSkill
@@ -9,7 +9,6 @@ namespace AgentSkill
     /// </summary>
     public static class GameObjectSkills
     {
-        [Serializable]
         private class CreateObjectParams
         {
             public string name = "NewObject";
@@ -39,7 +38,7 @@ namespace AgentSkill
             {
                 p = string.IsNullOrEmpty(body)
                     ? new CreateObjectParams()
-                    : JsonUtility.FromJson<CreateObjectParams>(body);
+                    : JsonConvert.DeserializeObject<CreateObjectParams>(body);
             }
             catch
             {
@@ -74,7 +73,7 @@ namespace AgentSkill
                 }
             }
 
-            return SkillResponse.Ok($"{{\"success\":true,\"name\":\"{SkillResponse.EscapeJson(go.name)}\"}}");
+            return SkillResponse.Ok(JsonConvert.SerializeObject(new { success = true, name = go.name }));
         }
     }
 }
