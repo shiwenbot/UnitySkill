@@ -1,4 +1,5 @@
 using Sirenix.Utilities.Editor;
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
@@ -26,6 +27,19 @@ namespace AgentSkill
         }
 
         private int selectedTab;
+        private List<AgentSkillRegistry.SkillInfo> _skills = new List<AgentSkillRegistry.SkillInfo>();
+        private Vector2 _skillsScrollPos;
+
+        private void OnEnable()
+        {
+            RefreshSkills();
+        }
+
+        private void RefreshSkills()
+        {
+            AgentSkillRegistry.Scan();
+            _skills = new List<AgentSkillRegistry.SkillInfo>(AgentSkillRegistry.GetAllSkills());
+        }
 
         private void OnGUI()
         {
@@ -130,9 +144,71 @@ namespace AgentSkill
 
         private void DrawSkillsTab()
         {
+            // 顶部标题栏
             SirenixEditorGUI.BeginBox();
-            GUILayout.Label("Skills", EditorStyles.boldLabel);
+            {
+                EditorGUILayout.BeginHorizontal();
+                {
+                    GUILayout.Label($"已注册 Skills（{_skills.Count}）", EditorStyles.boldLabel);
+                    GUILayout.FlexibleSpace();
+                    if (GUILayout.Button("刷新", GUILayout.Width(60), GUILayout.Height(20)))
+                    {
+                        RefreshSkills();
+                    }
+                }
+                EditorGUILayout.EndHorizontal();
+            }
             SirenixEditorGUI.EndBox();
+
+            EditorGUILayout.Space(4);
+
+            if (_skills.Count == 0)
+            {
+                EditorGUILayout.HelpBox("未发现任何 Skill。请确保已使用 [AgentSkill] 标记静态方法。", MessageType.Info);
+                return;
+            }
+
+            // Skill 列表
+            _skillsScrollPos = EditorGUILayout.BeginScrollView(_skillsScrollPos);
+            {
+                foreach (var skill in _skills)
+                {
+                    SirenixEditorGUI.BeginBox();
+                    {
+                        EditorGUILayout.BeginHorizontal();
+                        {
+                            // HTTP Method Badge
+                            var badgeColor = skill.HttpMethod == "GET"
+                                ? new Color(0.2f, 0.6f, 0.9f)
+                                : new Color(0.3f, 0.75f, 0.4f);
+                            var oldBg = GUI.backgroundColor;
+                            GUI.backgroundColor = badgeColor;
+                            GUILayout.Label(skill.HttpMethod, SirenixGUIStyles.BoldTitle,
+                                GUILayout.Width(48), GUILayout.Height(20));
+                            GUI.backgroundColor = oldBg;
+
+                            EditorGUILayout.Space(6);
+
+                            // 路由名称 + 类名.方法名
+                            EditorGUILayout.BeginVertical();
+                            {
+                                GUILayout.Label(skill.Route, EditorStyles.boldLabel);
+                                if (!string.IsNullOrEmpty(skill.Description))
+                                {
+                                    EditorGUILayout.Space(2);
+                                    GUILayout.Label(skill.Description, EditorStyles.wordWrappedMiniLabel);
+                                }
+                            }
+                            EditorGUILayout.EndVertical();
+                        }
+                        EditorGUILayout.EndHorizontal();
+                    }
+                    SirenixEditorGUI.EndBox();
+
+                    EditorGUILayout.Space(2);
+                }
+            }
+            EditorGUILayout.EndScrollView();
         }
 
         private void DrawHistoryTab()
