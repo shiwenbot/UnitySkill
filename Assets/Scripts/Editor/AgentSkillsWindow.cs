@@ -175,33 +175,11 @@ namespace AgentSkill
                 {
                     SirenixEditorGUI.BeginBox();
                     {
-                        EditorGUILayout.BeginHorizontal();
+                        GUILayout.Label(skill.Route, EditorStyles.boldLabel);
+                        if (!string.IsNullOrEmpty(skill.Description))
                         {
-                            // HTTP Method Badge
-                            var badgeColor = skill.HttpMethod == "GET"
-                                ? new Color(0.2f, 0.6f, 0.9f)
-                                : new Color(0.3f, 0.75f, 0.4f);
-                            var oldBg = GUI.backgroundColor;
-                            GUI.backgroundColor = badgeColor;
-                            GUILayout.Label(skill.HttpMethod, SirenixGUIStyles.BoldTitle,
-                                GUILayout.Width(48), GUILayout.Height(20));
-                            GUI.backgroundColor = oldBg;
-
-                            EditorGUILayout.Space(6);
-
-                            // 路由名称 + 类名.方法名
-                            EditorGUILayout.BeginVertical();
-                            {
-                                GUILayout.Label(skill.Route, EditorStyles.boldLabel);
-                                if (!string.IsNullOrEmpty(skill.Description))
-                                {
-                                    EditorGUILayout.Space(2);
-                                    GUILayout.Label(skill.Description, EditorStyles.wordWrappedMiniLabel);
-                                }
-                            }
-                            EditorGUILayout.EndVertical();
+                            GUILayout.Label(skill.Description, EditorStyles.wordWrappedMiniLabel);
                         }
-                        EditorGUILayout.EndHorizontal();
                     }
                     SirenixEditorGUI.EndBox();
 
