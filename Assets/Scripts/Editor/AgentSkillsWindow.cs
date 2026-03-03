@@ -175,11 +175,35 @@ namespace AgentSkill
                 {
                     SirenixEditorGUI.BeginBox();
                     {
-                        GUILayout.Label(skill.Route, EditorStyles.boldLabel);
-                        if (!string.IsNullOrEmpty(skill.Description))
+                        EditorGUILayout.BeginHorizontal();
                         {
-                            GUILayout.Label(skill.Description, EditorStyles.wordWrappedMiniLabel);
+                            EditorGUILayout.BeginVertical();
+                            {
+                                GUILayout.Label(skill.Route, EditorStyles.boldLabel);
+                                if (!string.IsNullOrEmpty(skill.Description))
+                                {
+                                    GUILayout.Label(skill.Description, EditorStyles.wordWrappedMiniLabel);
+                                }
+                            }
+                            EditorGUILayout.EndVertical();
+
+                            GUILayout.FlexibleSpace();
+
+                            // 类型标签
+                            var oldBgColor = GUI.backgroundColor;
+                            if (skill.SkillType == SkillType.Query)
+                            {
+                                GUI.backgroundColor = new Color(0.3f, 0.7f, 1f);
+                                GUILayout.Label("Query", EditorStyles.miniButton, GUILayout.Width(52), GUILayout.Height(18));
+                            }
+                            else
+                            {
+                                GUI.backgroundColor = new Color(1f, 0.6f, 0.2f);
+                                GUILayout.Label("Mutate", EditorStyles.miniButton, GUILayout.Width(52), GUILayout.Height(18));
+                            }
+                            GUI.backgroundColor = oldBgColor;
                         }
+                        EditorGUILayout.EndHorizontal();
                     }
                     SirenixEditorGUI.EndBox();
 
