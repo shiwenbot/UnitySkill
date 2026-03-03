@@ -30,7 +30,7 @@ namespace AgentSkill
         /// <summary>
         /// 在场景中创建一个基础几何体 GameObject
         /// </summary>
-        [AgentSkill("create_object")]
+        [AgentSkill("create_object", description: "在场景中创建一个基础几何体，支持指定名称、类型（Cube/Sphere/Capsule/Cylinder/Plane）、位置、缩放和颜色")]
         public static SkillResponse CreateObject(SkillRequest request)
         {
             var body = request.Body;
