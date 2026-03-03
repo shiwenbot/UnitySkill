@@ -31,7 +31,7 @@ namespace AgentSkill
         /// 在场景中创建一个基础几何体 GameObject
         /// </summary>
         [AgentSkill("create_object")]
-        public static string CreateObject(SkillRequest request)
+        public static SkillResponse CreateObject(SkillRequest request)
         {
             var body = request.Body;
             CreateObjectParams p;
@@ -74,13 +74,7 @@ namespace AgentSkill
                 }
             }
 
-            return $"{{\"success\":true,\"name\":\"{EscapeJson(go.name)}\"}}";
-        }
-
-        private static string EscapeJson(string s)
-        {
-            return s?.Replace("\\", "\\\\").Replace("\"", "\\\"")
-                     .Replace("\n", "\\n").Replace("\r", "\\r") ?? "";
+            return SkillResponse.Ok($"{{\"success\":true,\"name\":\"{SkillResponse.EscapeJson(go.name)}\"}}");
         }
     }
 }

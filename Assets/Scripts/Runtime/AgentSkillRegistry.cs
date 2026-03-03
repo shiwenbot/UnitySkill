@@ -12,8 +12,8 @@ namespace AgentSkill
     public static class AgentSkillRegistry
     {
         // key 格式："HTTPMETHOD:route"，如 "POST:create_object"
-        private static readonly Dictionary<string, Func<SkillRequest, string>> registry =
-            new Dictionary<string, Func<SkillRequest, string>>(StringComparer.OrdinalIgnoreCase);
+        private static readonly Dictionary<string, Func<SkillRequest, SkillResponse>> registry =
+            new Dictionary<string, Func<SkillRequest, SkillResponse>>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         /// 扫描 AppDomain 中所有用户程序集，注册带 AgentSkillAttribute 的静态方法
@@ -44,7 +44,7 @@ namespace AgentSkill
                             if (attr == null) continue;
 
                             var key = $"{attr.HttpMethod.ToUpper()}:{attr.Route.ToLower()}";
-                            registry[key] = (Func<SkillRequest, string>)method.CreateDelegate(typeof(Func<SkillRequest, string>));
+                            registry[key] = (Func<SkillRequest, SkillResponse>)method.CreateDelegate(typeof(Func<SkillRequest, SkillResponse>));
                             Debug.Log($"[AgentSkillRegistry] 注册 Skill: {key} → {type.Name}.{method.Name}");
                         }
                     }
@@ -61,7 +61,7 @@ namespace AgentSkill
         /// <summary>
         /// 按路由和 HTTP 方法查找已注册的 Skill 委托，未找到返回 null
         /// </summary>
-        public static Func<SkillRequest, string> Find(string route, string httpMethod)
+        public static Func<SkillRequest, SkillResponse> Find(string route, string httpMethod)
         {
             var key = $"{httpMethod.ToUpper()}:{route.ToLower()}";
             registry.TryGetValue(key, out var method);

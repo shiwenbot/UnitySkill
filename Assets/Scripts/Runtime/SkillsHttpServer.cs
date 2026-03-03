@@ -40,9 +40,9 @@ namespace AgentSkill
         // 封装一次主线程操作：执行函数 + 结果 + 完成信号
         private class PendingOperation
         {
-            public Func<string> Execute;
+            public Func<SkillResponse> Execute;
             public ManualResetEventSlim Done = new ManualResetEventSlim(false);
-            public string Result;
+            public SkillResponse Result;
         }
 
         /// <summary>
@@ -64,7 +64,7 @@ namespace AgentSkill
                 }
                 catch (Exception e)
                 {
-                    op.Result = $"{{\"success\":false,\"error\":\"{EscapeJson(e.Message)}\"}}";
+                    op.Result = SkillResponse.Fail(e.Message, 500);
                 }
                 op.Done.Set();
             }
@@ -73,13 +73,13 @@ namespace AgentSkill
         /// <summary>
         /// 将操作调度到主线程执行并等待结果（由后台线程调用）
         /// </summary>
-        private static string ExecuteOnMainThread(Func<string> action, int timeoutMs = 5000)
+        private static SkillResponse ExecuteOnMainThread(Func<SkillResponse> action, int timeoutMs = 5000)
         {
             var op = new PendingOperation { Execute = action };
             lock (queueLock) { mainThreadQueue.Enqueue(op); }
             return op.Done.Wait(timeoutMs)
                 ? op.Result
-                : "{\"success\":false,\"error\":\"主线程操作超时\"}";
+                : SkillResponse.Fail("主线程操作超时", 504);
         }
 
         /// <summary>
@@ -141,7 +141,7 @@ namespace AgentSkill
                 while (mainThreadQueue.Count > 0)
                 {
                     var op = mainThreadQueue.Dequeue();
-                    op.Result = "{\"success\":false,\"error\":\"服务器已停止\"}";
+                    op.Result = SkillResponse.Fail("服务器已停止", 503);
                     op.Done.Set();
                 }
             }
@@ -206,7 +206,7 @@ namespace AgentSkill
                 else
                 {
                     var route = path.TrimStart('/');
-                    Func<SkillRequest, string> skillDelegate = AgentSkillRegistry.Find(route, request.HttpMethod);
+                    Func<SkillRequest, SkillResponse> skillDelegate = AgentSkillRegistry.Find(route, request.HttpMethod);
 
                     if (skillDelegate != null)
                     {
@@ -223,12 +223,15 @@ namespace AgentSkill
                             EnqueueTimeTicks = DateTime.UtcNow.Ticks,
                             RequestId = Guid.NewGuid().ToString("N")
                         };
-                        responseString = ExecuteOnMainThread(() => skillDelegate(skillRequest));
+                        var skillResponse = ExecuteOnMainThread(() => skillDelegate(skillRequest));
+                        response.StatusCode = skillResponse.StatusCode;
+                        responseString = skillResponse.ResponseJson;
                     }
                     else
                     {
-                        response.StatusCode = 404;
-                        responseString = $"{{\"success\":false,\"error\":\"未知端点: {EscapeJson(path)}\"}}";
+                        var failResponse = SkillResponse.Fail("未知端点: " + path, 404);
+                        response.StatusCode = failResponse.StatusCode;
+                        responseString = failResponse.ResponseJson;
                     }
                 }
 
@@ -241,15 +244,6 @@ namespace AgentSkill
             {
                 Debug.LogError($"[SkillsHttpServer] 处理请求错误: {e.Message}");
             }
-        }
-
-        /// <summary>
-        /// 对 JSON 字符串值中的特殊字符进行转义
-        /// </summary>
-        private static string EscapeJson(string s)
-        {
-            return s?.Replace("\\", "\\\\").Replace("\"", "\\\"")
-                     .Replace("\n", "\\n").Replace("\r", "\\r") ?? "";
         }
     }
 }
