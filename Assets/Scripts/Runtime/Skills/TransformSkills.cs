@@ -72,6 +72,10 @@ namespace AgentSkill
                 return SkillResponse.Fail($"找不到 GameObject: {identifier}");
             }
 
+#if UNITY_EDITOR
+            AgentTransactionManager.RecordObject(go.transform, "move_object");
+#endif
+
             // 更新位置（仅修改非 null 的分量）
             if (p.x.HasValue || p.y.HasValue || p.z.HasValue)
             {
