@@ -14,7 +14,10 @@
       "Bash(git:*)",
       "Bash(python:*)",
       "Bash(npx tsx:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "mcp__plugin_context-mode_context-mode__batch_execute",
+      "mcp__plugin_context-mode_context-mode__search",
+      "mcp__plugin_context-mode_context-mode__execute"
     ]
   }
 }
