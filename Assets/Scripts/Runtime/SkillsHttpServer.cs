@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Threading;
+using Newtonsoft.Json;
 using UnityEngine;
 
 namespace AgentSkill
@@ -185,7 +186,7 @@ namespace AgentSkill
         }
 
         /// <summary>
-        /// 处理 HTTP 请求：/ping 直接响应，其余路由通过 AgentSkillRegistry 查表分发
+        /// 处理 HTTP 请求：/ping 直接响应，内置事务路由优先处理，其余通过 AgentSkillRegistry 查表分发
         /// </summary>
         private static void HandleRequest(HttpListenerContext context)
         {
@@ -202,6 +203,16 @@ namespace AgentSkill
                 if (path == "/ping" && request.HttpMethod == "GET")
                 {
                     responseString = $"{{\"status\":\"ok\",\"port\":{currentPort}}}";
+                }
+                else if (IsTransactionRoute(path) && request.HttpMethod == "POST")
+                {
+                    string txBody;
+                    using (var reader = new StreamReader(request.InputStream, System.Text.Encoding.UTF8))
+                        txBody = reader.ReadToEnd();
+
+                    var txResponse = ExecuteOnMainThread(() => HandleTransactionRoute(path.TrimStart('/'), txBody));
+                    response.StatusCode = txResponse.StatusCode;
+                    responseString = txResponse.ResponseJson;
                 }
                 else
                 {
@@ -244,6 +255,64 @@ namespace AgentSkill
             {
                 Debug.LogError($"[SkillsHttpServer] 处理请求错误: {e.Message}");
             }
+        }
+
+        /// <summary>
+        /// 判断路径是否为内置事务路由
+        /// </summary>
+        private static bool IsTransactionRoute(string path)
+        {
+            return path == "/begin_transaction" ||
+                   path == "/commit_transaction" ||
+                   path == "/rollback_transaction" ||
+                   path == "/undo";
+        }
+
+        /// <summary>
+        /// 处理内置事务路由（在主线程执行）
+        /// </summary>
+        private static SkillResponse HandleTransactionRoute(string route, string body)
+        {
+#if UNITY_EDITOR
+            switch (route)
+            {
+                case "begin_transaction":
+                {
+                    string name = "Agent Transaction";
+                    if (!string.IsNullOrEmpty(body))
+                    {
+                        try
+                        {
+                            var p = JsonConvert.DeserializeObject<System.Collections.Generic.Dictionary<string, string>>(body);
+                            if (p != null && p.TryGetValue("name", out var n) && !string.IsNullOrEmpty(n))
+                                name = n;
+                        }
+                        catch { }
+                    }
+                    AgentTransactionManager.BeginTransaction(name);
+                    return SkillResponse.Ok(JsonConvert.SerializeObject(new { success = true, transactionName = name }));
+                }
+                case "commit_transaction":
+                    AgentTransactionManager.CommitTransaction();
+                    return SkillResponse.Ok(JsonConvert.SerializeObject(new { success = true }));
+
+                case "rollback_transaction":
+                {
+                    var result = AgentTransactionManager.RollbackTransaction();
+                    if (result == "ok")
+                        return SkillResponse.Ok(JsonConvert.SerializeObject(new { success = true }));
+                    return SkillResponse.Fail(result);
+                }
+                case "undo":
+                    AgentTransactionManager.PerformUndo();
+                    return SkillResponse.Ok(JsonConvert.SerializeObject(new { success = true }));
+
+                default:
+                    return SkillResponse.Fail("未知事务路由: " + route, 404);
+            }
+#else
+            return SkillResponse.Fail("事务系统仅在 Unity 编辑器中可用");
+#endif
         }
     }
 }
