@@ -19,14 +19,16 @@ namespace AgentSkill
             public string TypeName { get; }
             public string MethodName { get; }
             public string Description { get; }
+            public SkillType SkillType { get; }
 
-            public SkillInfo(string route, string httpMethod, string typeName, string methodName, string description)
+            public SkillInfo(string route, string httpMethod, string typeName, string methodName, string description, SkillType skillType)
             {
                 Route = route;
                 HttpMethod = httpMethod;
                 TypeName = typeName;
                 MethodName = methodName;
                 Description = description;
+                SkillType = skillType;
             }
         }
 
@@ -70,7 +72,7 @@ namespace AgentSkill
 
                             var key = $"{attr.HttpMethod.ToUpper()}:{attr.Route.ToLower()}";
                             registry[key] = (Func<SkillRequest, SkillResponse>)method.CreateDelegate(typeof(Func<SkillRequest, SkillResponse>));
-                            _skillInfos.Add(new SkillInfo(attr.Route, attr.HttpMethod.ToUpper(), type.Name, method.Name, attr.Description));
+                            _skillInfos.Add(new SkillInfo(attr.Route, attr.HttpMethod.ToUpper(), type.Name, method.Name, attr.Description, attr.SkillType));
                             Debug.Log($"[AgentSkillRegistry] 注册 Skill: {key} → {type.Name}.{method.Name}");
                         }
                     }

@@ -24,7 +24,7 @@ namespace AgentSkill
         /// <summary>
         /// 根据名称、Tag、组件类型查询场景中的 GameObject
         /// </summary>
-        [AgentSkill("find_objects", description: "根据名称、Tag 或组件类型查询场景中的 GameObject，支持组合过滤、是否包含未激活物体")]
+        [AgentSkill("find_objects", SkillType.Query, description: "根据名称、Tag 或组件类型查询场景中的 GameObject，支持组合过滤、是否包含未激活物体")]
         public static SkillResponse FindObjects(SkillRequest request)
         {
             var body = request.Body;
