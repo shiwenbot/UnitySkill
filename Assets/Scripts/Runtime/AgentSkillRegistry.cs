@@ -11,9 +11,33 @@ namespace AgentSkill
     /// </summary>
     public static class AgentSkillRegistry
     {
+        /// <summary>已注册 Skill 的只读描述信息</summary>
+        public class SkillInfo
+        {
+            public string Route { get; }
+            public string HttpMethod { get; }
+            public string TypeName { get; }
+            public string MethodName { get; }
+            public string Description { get; }
+
+            public SkillInfo(string route, string httpMethod, string typeName, string methodName, string description)
+            {
+                Route = route;
+                HttpMethod = httpMethod;
+                TypeName = typeName;
+                MethodName = methodName;
+                Description = description;
+            }
+        }
+
         // key 格式："HTTPMETHOD:route"，如 "POST:create_object"
         private static readonly Dictionary<string, Func<SkillRequest, SkillResponse>> registry =
             new Dictionary<string, Func<SkillRequest, SkillResponse>>(StringComparer.OrdinalIgnoreCase);
+
+        private static readonly List<SkillInfo> _skillInfos = new List<SkillInfo>();
+
+        /// <summary>获取所有已注册 Skill 的描述信息</summary>
+        public static IReadOnlyList<SkillInfo> GetAllSkills() => _skillInfos;
 
         /// <summary>
         /// 扫描 AppDomain 中所有用户程序集，注册带 AgentSkillAttribute 的静态方法
@@ -21,6 +45,7 @@ namespace AgentSkill
         public static void Scan()
         {
             registry.Clear();
+            _skillInfos.Clear();
 
             foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
             {
@@ -45,6 +70,7 @@ namespace AgentSkill
 
                             var key = $"{attr.HttpMethod.ToUpper()}:{attr.Route.ToLower()}";
                             registry[key] = (Func<SkillRequest, SkillResponse>)method.CreateDelegate(typeof(Func<SkillRequest, SkillResponse>));
+                            _skillInfos.Add(new SkillInfo(attr.Route, attr.HttpMethod.ToUpper(), type.Name, method.Name, attr.Description));
                             Debug.Log($"[AgentSkillRegistry] 注册 Skill: {key} → {type.Name}.{method.Name}");
                         }
                     }

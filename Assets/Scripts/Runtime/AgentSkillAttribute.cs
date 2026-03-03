@@ -15,10 +15,14 @@ namespace AgentSkill
         /// <summary>HTTP 方法，默认 "POST"</summary>
         public string HttpMethod { get; }
 
-        public AgentSkillAttribute(string route, string httpMethod = "POST")
+        /// <summary>Skill 描述，用于编辑器窗口展示</summary>
+        public string Description { get; }
+
+        public AgentSkillAttribute(string route, string httpMethod = "POST", string description = "")
         {
             Route = route;
             HttpMethod = httpMethod;
+            Description = description;
         }
     }
 }
