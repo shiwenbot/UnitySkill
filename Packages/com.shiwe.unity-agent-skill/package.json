@@ -1,0 +1,19 @@
+{
+  "name": "com.shiwe.unity-agent-skill",
+  "version": "1.0.0",
+  "displayName": "Unity Agent Skill",
+  "description": "Embeds an HTTP server in the Unity Editor so Claude AI can create, query, and modify GameObjects via REST API. Requires Odin Inspector and Newtonsoft.Json.",
+  "unity": "2022.3",
+  "author": {
+    "name": "shiwe",
+    "url": "https://github.com/shiwenbot/UnitySkill"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "claude",
+    "http-server",
+    "editor-tool"
+  ],
+  "dependencies": {}
+}
