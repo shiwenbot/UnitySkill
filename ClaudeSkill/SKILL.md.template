@@ -1,0 +1,75 @@
+---
+name: unity-agent-tools
+description: "Connect to the AgentSkill Unity project HTTP server and interact with the scene via REST API. Use when the user wants to: (1) create GameObjects in Unity scene, (2) find/query GameObjects by name, tag, or component, (3) test the agent-Unity connection, (4) inspect what's in the scene, (5) interact with SkillsHttpServer running on localhost:8090, (6) move or reposition GameObjects, (7) change Transform properties. Triggers for: 'create a cube in Unity', 'add a sphere to the scene', 'test Unity connection', 'create object in scene', 'find objects in scene', 'list all lights', 'which objects have Camera', 'find GameObject named', 'scene query', 'move object', 'change position', 'relocate', '创建一个 Cube', '在场景中添加物体', '查找场景中的物体', '列出所有带 Light 的物体', '场景里有什么', '移动物体', '修改位置', '沿轴移动'."
+---
+
+# Unity Agent Tools
+
+连接到 AgentSkill 项目的 `SkillsHttpServer`，在 Unity 场景中创建、查询、修改 GameObject。
+
+**服务器地址**：`http://localhost:8090`（自动扫描 8090~8100）
+**启动方法**：Unity Editor → `Tools > Agent Skills > 启动服务器`
+
+---
+
+## 多 Skill 操作规范
+
+**每个 skill 独立执行，观察返回值后再执行下一步。**
+
+```
+Step 1: 执行查询 skill，打印完整结果，停止等待
+Step 2: 从输出中读取需要的值（instanceId、position 等）
+Step 3: 以实际值作为参数，执行修改 skill
+```
+
+**禁止**：在同一代码块中串联多个 skill（即使语法上可以）。
+
+示例（找到有 Light 的物体 → 移动它）：
+
+```python
+# Step 1：查询（执行后停止，看结果）
+import sys; sys.path.insert(0, r'{SCRIPTS_DIR}')
+from unity_agent_tools import find_objects
+print(find_objects(component_type='Light'))
+```
+
+```python
+# Step 3：用 Step 1 输出的实际 instanceId 执行移动
+import sys; sys.path.insert(0, r'{SCRIPTS_DIR}')
+from unity_agent_tools import move_object
+print(move_object(instance_id=45896, x=5.0))  # 替换为实际值
+```
+
+---
+
+## 检查连接
+
+```python
+import sys; sys.path.insert(0, r'{SCRIPTS_DIR}')
+from unity_agent_tools import is_unity_running
+print(is_unity_running())
+```
+
+---
+
+## 可用 Skill 索引
+
+| Skill | 关键参数 | 返回值摘要 |
+|-------|----------|------------|
+| `create_object` | `name`, `primitive_type`, `x/y/z`, `scale_x/y/z`, `color_r/g/b` | `{success, name}` |
+| `find_objects` | `name?`, `tag?`, `component_type?`, `include_inactive=False`, `limit=100` | `{success, count, objects[{name, instanceId, position, components}]}` |
+| `move_object` | `instance_id` 或 `name`; `x/y/z?`, `rot_x/y/z?`, `scale_x/y/z?` | `{success, name, position, rotation, scale}` |
+
+完整参数说明（类型、默认值、返回结构）→ `docs/create_object.md`、`docs/find_objects.md`、`docs/move_object.md`
+
+---
+
+## Domain Reload 注意事项
+
+创建 C# 脚本后 Unity 会重新编译，服务器临时断开：
+
+```python
+from unity_agent_tools import wait_for_unity
+if wait_for_unity(timeout=15):
+    pass  # 服务器已重新上线，继续操作
+```
