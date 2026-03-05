@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using UnityEditor;
-using UnityEngine;
 
 namespace AgentSkill
 {
@@ -31,13 +30,13 @@ namespace AgentSkill
         }
 
         /// <summary>
-        /// 返回项目的 ClaudeSkill 根目录（相对于 Assets 的父级）
+        /// 返回包内 ClaudeSkill 根目录，通过 PackageInfo 定位包的实际路径
         /// </summary>
         public static string GetProjectSkillRoot()
         {
-            // Application.dataPath 是 Assets/ 的绝对路径，父目录即项目根目录
-            var projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
-            return Path.Combine(projectRoot, "ClaudeSkill");
+            // 通过当前程序集定位本包的安装路径，兼容嵌入包和 git URL 安装两种场景
+            var packageInfo = UnityEditor.PackageManager.PackageInfo.FindForAssembly(typeof(SkillSetupManager).Assembly);
+            return Path.Combine(packageInfo.resolvedPath, "ClaudeSkill");
         }
 
         /// <summary>
