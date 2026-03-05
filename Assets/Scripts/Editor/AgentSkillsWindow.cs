@@ -140,6 +140,75 @@ namespace AgentSkill
                 }
                 SirenixEditorGUI.EndBox();
             }
+
+            EditorGUILayout.Space(5);
+            DrawClaudeSkillSetup();
+        }
+
+        private string _skillSetupError = null;
+
+        private void DrawClaudeSkillSetup()
+        {
+            SirenixEditorGUI.BeginBox();
+            {
+                GUILayout.Label("Claude Skill 配置", EditorStyles.boldLabel);
+                EditorGUILayout.Space();
+
+                var isInstalled = SkillSetupManager.IsInstalled();
+                var installDir = SkillSetupManager.GetInstallDir();
+
+                // 状态行
+                EditorGUILayout.BeginHorizontal();
+                {
+                    GUILayout.Label("状态：", GUILayout.Width(40));
+                    var oldColor = GUI.color;
+                    GUI.color = isInstalled ? new Color(0.3f, 0.8f, 0.3f) : new Color(1f, 0.4f, 0.4f);
+                    GUILayout.Label(isInstalled ? "✓ 已安装" : "✗ 未安装", EditorStyles.boldLabel);
+                    GUI.color = oldColor;
+                }
+                EditorGUILayout.EndHorizontal();
+
+                // 路径行
+                EditorGUILayout.BeginHorizontal();
+                {
+                    GUILayout.Label("路径：", GUILayout.Width(40));
+                    EditorGUILayout.SelectableLabel(installDir, EditorStyles.miniLabel, GUILayout.Height(18));
+                }
+                EditorGUILayout.EndHorizontal();
+
+                EditorGUILayout.Space(4);
+
+                // 安装按钮
+                EditorGUILayout.BeginHorizontal();
+                {
+                    GUILayout.FlexibleSpace();
+                    var btnLabel = isInstalled ? "重新安装" : "安装 Skill";
+                    GUI.backgroundColor = new Color(0.3f, 0.6f, 1f);
+                    if (GUILayout.Button(btnLabel, GUILayout.Width(100), GUILayout.Height(26)))
+                    {
+                        _skillSetupError = null;
+                        var (success, message) = SkillSetupManager.Install();
+                        if (success)
+                        {
+                            EditorUtility.DisplayDialog("安装成功", message, "确定");
+                        }
+                        else
+                        {
+                            _skillSetupError = message;
+                        }
+                    }
+                    GUI.backgroundColor = Color.white;
+                }
+                EditorGUILayout.EndHorizontal();
+
+                // 错误提示
+                if (!string.IsNullOrEmpty(_skillSetupError))
+                {
+                    EditorGUILayout.Space(4);
+                    EditorGUILayout.HelpBox(_skillSetupError, MessageType.Error);
+                }
+            }
+            SirenixEditorGUI.EndBox();
         }
 
         private void DrawSkillsTab()
